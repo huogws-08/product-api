@@ -6,8 +6,8 @@ services:
     restart: unless-stopped
 
     environment:
-      MONGO_INITDB_ROOT_USERNAME: huogws
-      MONGO_INITDB_ROOT_PASSWORD: Huong1610
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
 
     ports:
       - "27017:27017"
@@ -22,7 +22,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "mongosh --username huogws --password Huong1610 --authenticationDatabase admin --eval \"db.adminCommand('ping')\""
+          "mongosh --username ${MONGO_USERNAME} --password ${MONGO_PASSWORD} --authenticationDatabase admin --eval \"db.adminCommand('ping')\""
         ]
       interval: 10s
       timeout: 5s
@@ -42,8 +42,8 @@ services:
       - "3000:3000"
 
     environment:
-      PORT: 3000
-      MONGO_URI: mongodb://huogws:Huong1610@nammongodb:27017/productdb?authSource=admin
+      PORT: ${PORT}
+      MONGO_URI: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@nammongodb:27017/productdb?authSource=admin
 
     depends_on:
       nammongodb:
