@@ -1,89 +1,89 @@
 name: Product API Production CI
 
 on:
-push:
-branches:
-- main
-pull_request:
-branches:
-- main
-workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-production-test:
-runs-on: ubuntu-latest
+  production-test:
+    runs-on: ubuntu-latest
 
-steps:
-  - name: Checkout source code
-    uses: actions/checkout@v4
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-  - name: Setup Docker Buildx
-    uses: docker/setup-buildx-action@v3
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-  - name: Create CI environment
-    run: |
-      echo "PORT=3000" > .env
-      echo "MONGO_USERNAME=testuser" >> .env
-      echo "MONGO_PASSWORD=testpassword123" >> .env
-      echo "MONGO_URI=mongodb://testuser:testpassword123@localhost:27017/productdb?authSource=admin" >> .env
+      - name: Create CI environment
+        run: |
+          echo "PORT=3000" > .env
+          echo "MONGO_USERNAME=testuser" >> .env
+          echo "MONGO_PASSWORD=testpassword123" >> .env
+          echo "MONGO_URI=mongodb://testuser:testpassword123@localhost:27017/productdb?authSource=admin" >> .env
 
-  - name: Build and start services
-    run: docker compose up -d --build
+      - name: Build and start services
+        run: docker compose up -d --build
 
-  - name: Check container status
-    run: |
-      docker compose ps
-      docker inspect --format='{{.Name}} - {{.State.Health.Status}}' nammongodb
-      docker inspect --format='{{.Name}} - {{.State.Health.Status}}' product-api
+      - name: Check container status
+        run: |
+          docker compose ps
+          docker inspect --format='{{.Name}} - {{.State.Health.Status}}' nammongodb
+          docker inspect --format='{{.Name}} - {{.State.Health.Status}}' product-api
 
-  - name: Wait for Product API
-    run: |
-      for i in {1..30}; do
-        if curl --fail http://localhost:3000/; then
-          echo "Product API is ready"
-          exit 0
-        fi
-        echo "Waiting for Product API..."
-        sleep 2
-      done
-      echo "Product API did not become ready"
-      docker compose logs
-      exit 1
+      - name: Wait for Product API
+        run: |
+          for i in {1..30}; do
+            if curl --fail http://localhost:3000/; then
+              echo "Product API is ready"
+              exit 0
+            fi
+            echo "Waiting for Product API..."
+            sleep 2
+          done
+          echo "Product API did not become ready"
+          docker compose logs
+          exit 1
 
-  - name: Test CREATE product
-    run: |
-      curl --fail -X POST http://localhost:3000/api/products \
-        -H "Content-Type: application/json" \
-        -d '{"pid":"CI001","pname":"CI Test Product","price":100000,"quantity":10}'
+      - name: Test CREATE product
+        run: |
+          curl --fail -X POST http://localhost:3000/api/products \
+            -H "Content-Type: application/json" \
+            -d '{"pid":"CI001","pname":"CI Test Product","price":100000,"quantity":10}'
 
-  - name: Test READ all products
-    run: |
-      curl --fail http://localhost:3000/api/products
+      - name: Test READ all products
+        run: |
+          curl --fail http://localhost:3000/api/products
 
-  - name: Test READ product by pid
-    run: |
-      curl --fail http://localhost:3000/api/products/CI001
+      - name: Test READ product by pid
+        run: |
+          curl --fail http://localhost:3000/api/products/CI001
 
-  - name: Test UPDATE product
-    run: |
-      curl --fail -X PUT http://localhost:3000/api/products/CI001 \
-        -H "Content-Type: application/json" \
-        -d '{"pname":"Updated CI Product","price":200000,"quantity":5}'
+      - name: Test UPDATE product
+        run: |
+          curl --fail -X PUT http://localhost:3000/api/products/CI001 \
+            -H "Content-Type: application/json" \
+            -d '{"pname":"Updated CI Product","price":200000,"quantity":5}'
 
-  - name: Verify UPDATE
-    run: |
-      curl --fail http://localhost:3000/api/products/CI001
+      - name: Verify UPDATE
+        run: |
+          curl --fail http://localhost:3000/api/products/CI001
 
-  - name: Test DELETE product
-    run: |
-      curl --fail -X DELETE http://localhost:3000/api/products/CI001
+      - name: Test DELETE product
+        run: |
+          curl --fail -X DELETE http://localhost:3000/api/products/CI001
 
-  - name: Verify DELETE
-    run: |
-      response=$(curl --silent --output /dev/null --write-out "%{http_code}" \
-        http://localhost:3000/api/products/CI001)
-      test "$response" = "404"
+      - name: Verify DELETE
+        run: |
+          response=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+            http://localhost:3000/api/products/CI001)
+          test "$response" = "404"
 
-  - name: Stop Docker Compose
-    if: always()
-    run: docker compose down -v
+      - name: Stop Docker Compose
+        if: always()
+        run: docker compose down -v
