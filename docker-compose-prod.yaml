@@ -1,0 +1,64 @@
+services:
+  nammongodb:
+    image: mongo:latest
+    container_name: nammongodb-prod
+
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongo-prod-data:/data/db
+
+    networks:
+      - product-network-prod
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --username ${MONGO_USERNAME} --password ${MONGO_PASSWORD} --authenticationDatabase admin --eval \"db.adminCommand('ping')\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  product-api:
+    image: ${DOCKERHUB_USERNAME}/product-api:latest
+    container_name: product-api-prod
+
+    environment:
+      PORT: ${PORT}
+      MONGO_URI: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@nammongodb-prod:27017/productdb?authSource=admin
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      nammongodb:
+        condition: service_healthy
+
+    networks:
+      - product-network-prod
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  mongo-prod-data:
+
+networks:
+  product-network-prod:
+    driver: bridge

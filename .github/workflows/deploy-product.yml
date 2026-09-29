@@ -1,0 +1,68 @@
+name: Product API Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Create production environment
+        shell: powershell
+        run: |
+          @"
+          PORT=3000
+          MONGO_USERNAME=${{ secrets.MONGO_USERNAME }}
+          MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}
+          DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+          "@ | Out-File -FilePath .env -Encoding utf8
+
+      - name: Pull latest Docker images
+        run: docker compose -f docker-compose-prod.yaml pull
+
+      - name: Stop old production containers
+        run: docker compose -f docker-compose-prod.yaml down
+
+      - name: Start production
+        run: docker compose -f docker-compose-prod.yaml up -d
+
+      - name: Wait for Product API
+        shell: powershell
+        run: |
+          for ($i = 1; $i -le 30; $i++) {
+            try {
+              $status = docker inspect --format='{{.State.Health.Status}}' product-api-prod 2>$null
+
+              if ($status -eq "healthy") {
+                Write-Host "Product API is healthy"
+                exit 0
+              }
+            }
+            catch {
+            }
+
+            Write-Host "Waiting for Product API..."
+            Start-Sleep -Seconds 2
+          }
+
+          Write-Host "Product API did not become healthy"
+          docker compose -f docker-compose-prod.yaml ps
+          docker compose -f docker-compose-prod.yaml logs
+          exit 1
+
+      - name: Test Production API
+        shell: powershell
+        run: |
+          Invoke-WebRequest `
+            -Uri http://localhost:3000/ `
+            -UseBasicParsing
+
+      - name: Check production containers
+        run: docker compose -f docker-compose-prod.yaml ps
