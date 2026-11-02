@@ -6,6 +6,6 @@ describe("Product API", () => {
       .get("/");
 
     expect(response.statusCode).toBe(200);
-    expect(response.body.message).toBe("Product API is running");
+    expect(response.body.message).toBe("Đã đổi thành công !");
   });
 });

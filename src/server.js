@@ -15,7 +15,7 @@ connectDB();
 // Route kiểm tra API
 app.get("/", (req, res) => {
   res.json({
-    message: "Product API is running",
+    message: "Đã đổi thành công !",
   });
 });
 
