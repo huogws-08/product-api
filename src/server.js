@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 
 const express = require("express");
@@ -6,16 +7,20 @@ const productRoutes = require("./routes/productRoutes");
 
 const app = express();
 
-// Cho phép API đọc dữ liệu JSON
 app.use(express.json());
 
-// Kết nối MongoDB
 connectDB();
 
-// Route kiểm tra API
 app.get("/", (req, res) => {
   res.json({
-    message: "Đã đổi thành công !",
+    message: "Product API is running",
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    message: "Product API",
   });
 });
 
